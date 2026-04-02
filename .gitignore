@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.DS_Store
+*.lottie
+*.json
+!manifest.json
+animtoon_train.jsonl
+animtoon_test_*.jsonl
+*.animtoon.txt
+models/
+wandb/
+.claude/
