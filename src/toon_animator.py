@@ -422,13 +422,21 @@ class AnimTOONToLottie:
                     else:
                         paths.append(path_str)
                 elif prop.startswith('pos '):
-                    pos_data = prop[4:].strip()
+                    val = prop[4:].strip()
+                    if '{' not in val:  # skip raw JSON blobs
+                        pos_data = val
                 elif prop.startswith('rot '):
-                    rot_data = prop[4:].strip()
+                    val = prop[4:].strip()
+                    if '{' not in val:
+                        rot_data = val
                 elif prop.startswith('scale '):
-                    scale_data = prop[6:].strip()
+                    val = prop[6:].strip()
+                    if '{' not in val:
+                        scale_data = val
                 elif prop.startswith('opacity '):
-                    opacity_data = prop[8:].strip()
+                    val = prop[8:].strip()
+                    if '{' not in val:
+                        opacity_data = val
             except Exception:
                 continue
 
@@ -555,18 +563,9 @@ class AnimTOONToLottie:
         return {"a": 1, "k": lottie_kfs}
 
     def _build_anchor_from_pos(self, data: str) -> dict:
-        """Build anchor point matching the position (for correct rotation pivot)."""
-        if not data:
-            return {"a": 0, "k": [self.w / 2, self.h / 2, 0]}
-
-        keyframes, ease = self._parse_keyframes(data)
-        if keyframes:
-            t, val = keyframes[0]
-            if isinstance(val, list):
-                x = val[0] * self.w
-                y = val[1] * self.h if len(val) > 1 else val[0] * self.h
-                return {"a": 0, "k": [round(x, 3), round(y, 3), 0]}
-        return {"a": 0, "k": [self.w / 2, self.h / 2, 0]}
+        """Build anchor point at [0,0] so shapes scale/rotate around their center.
+        Position handles placement on canvas, anchor stays at shape origin."""
+        return {"a": 0, "k": [0, 0, 0]}
 
     def _build_scalar_prop(self, data: str, default) -> dict:
         """Build Lottie scalar property (rotation/opacity)."""
@@ -762,19 +761,13 @@ class AnimTOONToLottie:
                 "hd": False
             }
         else:
-            # Default: simple bezier placeholder (small diamond shape)
+            # Default: ellipse shape (~20% of canvas, renders as clean circle)
+            size = round(self.w * 0.2)  # 20% of canvas
             return {
-                "ty": "sh",
-                "ks": {
-                    "a": 0,
-                    "k": {
-                        "i": [[0, 0], [0, 0], [0, 0], [0, 0]],
-                        "o": [[0, 0], [0, 0], [0, 0], [0, 0]],
-                        "v": [[-5, 0], [0, -5], [5, 0], [0, 5]],
-                        "c": True
-                    }
-                },
-                "nm": "Path 1",
+                "ty": "el",
+                "s": {"a": 0, "k": [size, size]},
+                "p": {"a": 0, "k": [0, 0]},
+                "nm": "Ellipse 1",
                 "hd": False
             }
 
