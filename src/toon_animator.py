@@ -201,7 +201,8 @@ class LottieToAnimTOON:
         return k
 
     def _convert_property_pos(self, prop: dict) -> Optional[str]:
-        """Convert position property to AnimTOON format."""
+        """Convert position property to AnimTOON format.
+        Uses integer grid 0-1000 for token efficiency (1 token per int vs 3-4 per float)."""
         if not prop:
             return None
         animated = prop.get('a', 0) == 1
@@ -211,20 +212,20 @@ class LottieToAnimTOON:
             kf_parts = []
             for kf in k:
                 t = kf.get('t', 0)
-                t_norm = round((t - self.ip) / self.total_frames, 2)
-                t_norm = max(0.0, min(1.0, t_norm))
+                t_int = round((t - self.ip) / self.total_frames * 1000)
+                t_int = max(0, min(1000, t_int))
                 s = kf.get('s', [0, 0, 0])
                 if isinstance(s, list) and len(s) >= 2:
-                    x = round(s[0] / self.w, 2)
-                    y = round(s[1] / self.h, 2)
-                    kf_parts.append(f"{t_norm}\u2192[{x},{y}]")
+                    x = round(s[0] / self.w * 1000)
+                    y = round(s[1] / self.h * 1000)
+                    kf_parts.append(f"{t_int}\u2192[{x},{y}]")
             ease = self._detect_ease(k)
             return f"pos {' '.join(kf_parts)} ease={ease}"
         else:
             # Static position
             if isinstance(k, list) and len(k) >= 2:
-                x = round(k[0] / self.w, 2)
-                y = round(k[1] / self.h, 2)
+                x = round(k[0] / self.w * 1000)
+                y = round(k[1] / self.h * 1000)
                 return f"pos [{x},{y}]"
             return None
 
@@ -239,12 +240,12 @@ class LottieToAnimTOON:
             kf_parts = []
             for kf in k:
                 t = kf.get('t', 0)
-                t_norm = round((t - self.ip) / self.total_frames, 2)
-                t_norm = max(0.0, min(1.0, t_norm))
+                t_int = round((t - self.ip) / self.total_frames * 1000)
+                t_int = max(0, min(1000, t_int))
                 s = kf.get('s', [0])
                 val = s[0] if isinstance(s, list) and len(s) > 0 else s
                 val = round(val) if isinstance(val, float) and val == int(val) else (round(val, 1) if isinstance(val, float) else val)
-                kf_parts.append(f"{t_norm}\u2192{val}")
+                kf_parts.append(f"{t_int}\u2192{val}")
             ease = self._detect_ease(k)
             if name == 'opacity':
                 ease = 'fade'
@@ -271,12 +272,12 @@ class LottieToAnimTOON:
             kf_parts = []
             for kf in k:
                 t = kf.get('t', 0)
-                t_norm = round((t - self.ip) / self.total_frames, 2)
-                t_norm = max(0.0, min(1.0, t_norm))
+                t_int = round((t - self.ip) / self.total_frames * 1000)
+                t_int = max(0, min(1000, t_int))
                 s = kf.get('s', [100, 100])
                 sx = round(s[0]) if len(s) > 0 else 100
                 sy = round(s[1]) if len(s) > 1 else 100
-                kf_parts.append(f"{t_norm}\u2192[{sx},{sy}]")
+                kf_parts.append(f"{t_int}\u2192[{sx},{sy}]")
             ease = self._detect_ease(k)
             return f"scale {' '.join(kf_parts)} ease={ease}"
         else:
@@ -471,21 +472,20 @@ class AnimTOONToLottie:
         return layer
 
     def _parse_keyframes(self, data: str) -> tuple:
-        """Parse keyframe string. Supports:
-        - Animated: '0.0→[0.5,0.5] 0.5→[0.8,0.3] ease=smooth'
-        - Static compact: '[0.5,0.5]' or '720'
-        Returns (keyframes_list, ease_type)"""
+        """Parse keyframe string. Supports both formats:
+        - v3 float: '0.0→[0.5,0.5] 0.5→[0.8,0.3] ease=smooth'
+        - v4 int:   '0→[500,500] 500→[800,300] ease=smooth'
+        Auto-detects format. Returns (keyframes_list, ease_type)
+        Time values always normalized to 0.0-1.0 range."""
         if not data:
             return [], 'none'
 
         ease_match = re.search(r'ease=(\w+)', data)
         ease = ease_match.group(1) if ease_match else 'none'
 
-        # Remove ease part
         kf_str = re.sub(r'\s*ease=\w+', '', data).strip()
 
         keyframes = []
-        # Match animated patterns like 0.0→[0.5,0.5] or 0.0→720.0
         pattern = r'([\d.]+)\u2192(\[[\d.,\s-]+\]|[\d.\-]+)'
         for match in re.finditer(pattern, kf_str):
             t = float(match.group(1))
@@ -497,7 +497,6 @@ class AnimTOONToLottie:
                 val = float(val_str)
             keyframes.append((t, val))
 
-        # If no arrow-style keyframes found, try static compact format
         if not keyframes:
             arr_match = re.match(r'\[([\d.,\s-]+)\]', kf_str)
             if arr_match:
@@ -508,6 +507,13 @@ class AnimTOONToLottie:
                     keyframes.append((0.0, float(kf_str)))
                 except ValueError:
                     pass
+
+        # Auto-detect format: if any time value > 1.0, it's integer grid (0-1000)
+        if keyframes:
+            max_t = max(t for t, _ in keyframes)
+            if max_t > 1.0:
+                # Integer grid: normalize time by dividing by 1000
+                keyframes = [(t / 1000.0, val) for t, val in keyframes]
 
         return keyframes, ease
 
@@ -531,12 +537,19 @@ class AnimTOONToLottie:
         if not keyframes:
             return {"a": 0, "k": [self.w / 2, self.h / 2, 0]}
 
+        # Auto-detect coordinate range: >1 means integer grid (0-1000)
+        def _pos_to_px(v):
+            """Convert position value to pixels. Handles both 0-1 float and 0-1000 int."""
+            if abs(v) > 1.0:
+                return round(v / 1000.0 * self.w, 3)
+            return round(v * self.w, 3)
+
         if len(keyframes) == 1 or ease == 'none':
             t, val = keyframes[0]
             if isinstance(val, list):
-                x = val[0] * self.w
-                y = val[1] * self.h if len(val) > 1 else val[0] * self.h
-                return {"a": 0, "k": [round(x, 3), round(y, 3), 0]}
+                x = _pos_to_px(val[0])
+                y = _pos_to_px(val[1]) if len(val) > 1 else _pos_to_px(val[0])
+                return {"a": 0, "k": [x, y, 0]}
             return {"a": 0, "k": [self.w / 2, self.h / 2, 0]}
 
         # Animated
@@ -545,11 +558,11 @@ class AnimTOONToLottie:
         for idx, (t, val) in enumerate(keyframes):
             frame = round(t * self.dur)
             if isinstance(val, list):
-                x = round(val[0] * self.w, 3)
-                y = round(val[1] * self.h, 3) if len(val) > 1 else round(val[0] * self.h, 3)
+                x = _pos_to_px(val[0])
+                y = _pos_to_px(val[1]) if len(val) > 1 else _pos_to_px(val[0])
                 s = [x, y, 0]
             else:
-                s = [round(val * self.w, 3), round(val * self.h, 3), 0]
+                s = [_pos_to_px(val), _pos_to_px(val), 0]
 
             kf = {"t": frame, "s": s}
             if idx < len(keyframes) - 1:
