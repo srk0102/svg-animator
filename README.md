@@ -1,6 +1,12 @@
 # AnimTOON: Token-Efficient Vector Animation Generation
 
+[![Model](https://img.shields.io/badge/Model-HuggingFace-yellow)](https://huggingface.co/srk0102200/AnimTOON-3B)
+[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+[![GitHub](https://img.shields.io/github/stars/srk0102/svg-animator)](https://github.com/srk0102/svg-animator)
+
 > **5-7x fewer tokens than OmniLottie (CVPR 2026) for generating Lottie animations, running on a single consumer GPU.**
+>
+> **Model:** [huggingface.co/srk0102200/AnimTOON-3B](https://huggingface.co/srk0102200/AnimTOON-3B)
 
 AnimTOON is a compact, plain-text animation format designed for LLMs to generate Lottie animations with minimal tokens. Unlike existing approaches that require custom tokenizers and large GPU clusters, AnimTOON works with any LLM and runs on consumer hardware.
 
@@ -173,9 +179,9 @@ python test_svg_pipeline.py inputs/apple.svg
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
 
-tokenizer = AutoTokenizer.from_pretrained("models/animtoon-3b-v2-merged")
+tokenizer = AutoTokenizer.from_pretrained("srk0102200/AnimTOON-3B")
 model = AutoModelForCausalLM.from_pretrained(
-    "models/animtoon-3b-v2-merged",
+    "srk0102200/AnimTOON-3B",
     dtype=torch.float16,
     device_map="cuda"
 )
