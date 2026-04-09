@@ -114,17 +114,22 @@ See full pipeline: [test_svg_pipeline.py](https://github.com/srk0102/svg-animato
 - Average AnimTOON: 222 tokens
 - Token reduction: 98.8%
 
-## Current Status
+## Current Status (v3)
 
-This is an early research release (~60% through planned training). The model works well for:
+**v3 adds character animation support** trained on Spine + DragonBones skeletal data.
+
+The model now works for:
 - Icon/logo animations (pulse, bounce, spin, fade, wobble)
+- **Character idle/walk cycles (14 layers, coordinated)**
+- **Multi-part SVG animation (47-part crab demo)**
 - Correct color matching from text descriptions
-- SVG + animation pipeline
+- SVG + animation pipeline with per-part anchor points
 
 **Limitations:**
-- Complex multi-layer choreography needs improvement
 - No shape generation (requires SVG input)
-- Not yet trained on character animation data
+- Model output varies between runs (temperature-dependent)
+- Position animation on shape groups not yet supported
+- Not yet trained on facial expressions
 
 ## Training Details
 
@@ -132,7 +137,7 @@ This is an early research release (~60% through planned training). The model wor
 |-----------|-------|
 | Base Model | Qwen/Qwen2.5-3B-Instruct |
 | Method | LoRA (r=16, alpha=32) merged into base |
-| Training Data | 99,650 (MMLottie-2M) + 10,000 (layer-aware) |
+| Training Data | 99,650 (MMLottie-2M) + 10,000 (layer-aware) + 984 (Spine/DragonBones) |
 | Hardware | 1x NVIDIA RTX 5060 Ti (16GB) |
 | Framework | Unsloth |
 | Token Reduction | 98.8% vs raw Lottie JSON |

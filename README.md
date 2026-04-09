@@ -4,11 +4,19 @@
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![GitHub](https://img.shields.io/github/stars/srk0102/svg-animator)](https://github.com/srk0102/svg-animator)
 
-> **5-7x fewer tokens than OmniLottie (CVPR 2026) for generating Lottie animations, running on a single consumer GPU.**
+> **3-4x fewer tokens than OmniLottie (CVPR 2026) for generating Lottie animations, running on a single consumer GPU.**
 >
-> **Model:** [huggingface.co/srk0102200/AnimTOON-3B](https://huggingface.co/srk0102200/AnimTOON-3B)
+> **Model (v3):** [huggingface.co/srk0102200/AnimTOON-3B](https://huggingface.co/srk0102200/AnimTOON-3B) — now with character animation support
+>
+> **v3 New:** Multi-part SVG animation, coordinated 14-layer character idle/walk cycles, trained on Spine + DragonBones skeletal data
 
 AnimTOON is a compact, plain-text animation format designed for LLMs to generate Lottie animations with minimal tokens. Unlike existing approaches that require custom tokenizers and large GPU clusters, AnimTOON works with any LLM and runs on consumer hardware.
+
+### What's New in v3
+- **Character Animation:** 14-layer coordinated walk/idle cycles from text
+- **Multi-Part SVG:** Animate individual parts of complex SVGs (47-part crab demo)
+- **Spine/DragonBones Training:** Model understands skeletal hierarchy (arms, legs, head, torso)
+- **Per-Part Anchor Points:** Each SVG part rotates around its own center (no more flying parts)
 
 ## Demo: AnimTOON vs OmniLottie (Same Prompt)
 
@@ -126,28 +134,31 @@ layer Body shape             # layer name + type
 
 > **This is an early research release. The model is approximately 60% through training. Full model release coming after extended training on cloud GPU.**
 
-### What Works Now
+### What Works Now (v3)
 - AnimTOON format specification (complete)
 - Bidirectional converter: AnimTOON <-> Lottie JSON <-> .lottie (100% reliable)
 - SVG -> animated .lottie pipeline (python-lottie + model + converter)
 - Simple icon/logo animations: pulse, bounce, spin, fade, wobble, scale
+- **Character animations: 14-layer coordinated walk/idle cycles**
+- **Multi-part SVG animation: 47-part crab with per-part rotation**
+- **Per-shape-group anchor point calculation (BBox centroid)**
 - Correct color matching from text descriptions
-- Multi-layer output generation
 - 98.8% token reduction vs raw Lottie JSON
+- Trained on 100k MMLottie + 10k layer-aware + 984 Spine/DragonBones character data
 
-### Limitations (Current Model)
-- Complex multi-layer choreography needs improvement (most layers static)
+### Limitations (v3)
 - No shape generation (requires SVG input)
-- Animation logic sometimes inverted (fade out instead of fade in)
-- Layer-to-SVG mapping can misalign for multi-part SVGs
-- Trained on MMLottie-2M data only (icon/motion graphics style)
-- Not yet trained on character animation (walk cycles, expressions, etc.)
+- Model output varies between runs (temperature-dependent)
+- Position animation on shape groups still breaks layout (rotation/scale only)
+- Complex multi-character scenes not yet supported
+- Not yet trained on facial expressions (blink/smile/talk)
 
 ### Roadmap
-- **v1.0 (Current):** Icon/logo animation from text + SVG input
-- **v1.5:** Better multi-layer coordination, more training data
-- **v2.0:** Anime/character animation using Spine/Live2D rigging data
-- **v3.0:** Full text-to-SVG+animation pipeline (shape generation + motion)
+- **v1.0:** Icon/logo animation from text + SVG input
+- **v2.0:** Layer-aware animation (understands SVG structure)
+- **v3.0 (Current):** Character animation with Spine/DragonBones skeletal data
+- **v4.0 (Next):** Live2D facial expressions + anime character animation
+- **v5.0:** Full manga-to-anime pipeline (panel → animated scene)
 
 ## Quick Start
 
@@ -280,8 +291,8 @@ svg-animator/
 |-----------|-------|
 | Base Model | Qwen/Qwen2.5-3B-Instruct |
 | Method | LoRA (r=16, alpha=32) |
-| Training Data | 99,650 samples (MMLottie-2M) + 10,000 layer-aware |
-| Epochs | ~2 (100k data) + 3 (10k layer data) |
+| Training Data | 99,650 (MMLottie-2M) + 10,000 (layer-aware) + 984 (Spine/DragonBones) |
+| Epochs | ~2 (100k) + 3 (10k layers) + 3 (984 character) |
 | Hardware | 1x NVIDIA RTX 5060 Ti (16GB VRAM) |
 | Framework | Unsloth + Transformers |
 | Max Length | 1024 tokens |
