@@ -35,6 +35,9 @@ def load_training_data(jsonl_path: str) -> Dataset:
                 continue
             try:
                 rec = json.loads(line)
+                # Support both 'instruction' and 'input' field names
+                if rec.get("input") and not rec.get("instruction"):
+                    rec["instruction"] = rec["input"]
                 if rec.get("instruction") and rec.get("output"):
                     records.append(rec)
             except json.JSONDecodeError:

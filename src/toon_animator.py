@@ -761,13 +761,14 @@ class AnimTOONToLottie:
                 "hd": False
             }
         else:
-            # Default: ellipse shape (~20% of canvas, renders as clean circle)
+            # Default: rectangle shape (~20% of canvas)
             size = round(self.w * 0.2)  # 20% of canvas
             return {
-                "ty": "el",
+                "ty": "rc",
                 "s": {"a": 0, "k": [size, size]},
                 "p": {"a": 0, "k": [0, 0]},
-                "nm": "Ellipse 1",
+                "r": {"a": 0, "k": 0},
+                "nm": "Rect 1",
                 "hd": False
             }
 
@@ -904,48 +905,32 @@ def _clamp_opacity(prop: dict, layer_name: str, fixes: list):
 
 
 def _clamp_position(prop: dict, w: int, h: int, layer_name: str, fixes: list):
-    """Clamp position values to 0–canvas range."""
+    """Clamp position values to canvas. Off-canvas positions snap to center."""
+    cx, cy = w / 2, h / 2
+    margin = w * 0.1  # allow 10% overflow
+
+    def _clamp_val(s):
+        clamped = False
+        if isinstance(s, list) and len(s) >= 2:
+            if s[0] < -margin or s[0] > w + margin:
+                s[0] = cx
+                clamped = True
+            if s[1] < -margin or s[1] > h + margin:
+                s[1] = cy
+                clamped = True
+        return clamped
+
     if prop.get('a', 0) == 1:
-        # Animated keyframes
         for kf in prop.get('k', []):
             if not isinstance(kf, dict):
                 continue
             s = kf.get('s')
-            if isinstance(s, list) and len(s) >= 2:
-                clamped = False
-                if s[0] < 0:
-                    s[0] = 0
-                    clamped = True
-                elif s[0] > w:
-                    s[0] = w
-                    clamped = True
-                if s[1] < 0:
-                    s[1] = 0
-                    clamped = True
-                elif s[1] > h:
-                    s[1] = h
-                    clamped = True
-                if clamped:
-                    fixes.append(f"[{layer_name}] position out of canvas → clamped")
+            if _clamp_val(s):
+                fixes.append(f"[{layer_name}] position out of canvas → clamped to center")
     else:
-        # Static value
         k = prop.get('k')
-        if isinstance(k, list) and len(k) >= 2:
-            clamped = False
-            if k[0] < 0:
-                k[0] = 0
-                clamped = True
-            elif k[0] > w:
-                k[0] = w
-                clamped = True
-            if k[1] < 0:
-                k[1] = 0
-                clamped = True
-            elif k[1] > h:
-                k[1] = h
-                clamped = True
-            if clamped:
-                fixes.append(f"[{layer_name}] position out of canvas → clamped")
+        if _clamp_val(k):
+            fixes.append(f"[{layer_name}] position out of canvas → clamped to center")
 
 
 # ─── TOKEN COUNTING ─────────────────────────────────────────────────
