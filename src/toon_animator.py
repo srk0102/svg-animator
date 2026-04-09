@@ -337,6 +337,13 @@ class AnimTOONToLottie:
 
         layers = self._parse_layers(lines)
 
+        # Resolve parent-child relationships by name → index
+        name_to_ind = {l['nm']: l['ind'] for l in layers}
+        for layer in layers:
+            parent_name = layer.pop('_parent_name', None)
+            if parent_name and parent_name in name_to_ind:
+                layer['parent'] = name_to_ind[parent_name]
+
         lottie = {
             "v": "5.7.4",
             "fr": self.fr,
@@ -376,14 +383,19 @@ class AnimTOONToLottie:
             if stripped.startswith('anim '):
                 continue
 
-            if stripped.startswith('layer '):
+            if stripped.startswith('layer') and not stripped.startswith('layers'):
                 # Save previous layer
                 if current_layer is not None:
                     layers.append(self._build_layer(current_layer, current_props, len(layers)))
                 parts = stripped.split()
                 nm = parts[1] if len(parts) > 1 else 'unnamed'
                 ty = parts[2] if len(parts) > 2 else 'shape'
-                current_layer = {'nm': nm, 'ty': ty}
+                # Parse parent=X from remaining parts
+                parent = None
+                for p in parts[3:]:
+                    if p.startswith('parent='):
+                        parent = p[7:]
+                current_layer = {'nm': nm, 'ty': ty, 'parent': parent}
                 current_props = []
             elif current_layer is not None:
                 current_props.append(stripped)
@@ -397,6 +409,7 @@ class AnimTOONToLottie:
     def _build_layer(self, layer_info: dict, props: list, index: int) -> dict:
         nm = layer_info['nm']
         ty = LAYER_TYPE_NUM.get(layer_info['ty'], 4)
+        parent_name = layer_info.get('parent')
 
         fills = []
         strokes = []
@@ -465,6 +478,10 @@ class AnimTOONToLottie:
             "st": 0,
             "bm": 0
         }
+
+        # Store parent name for resolution after all layers are built
+        if parent_name:
+            layer["_parent_name"] = parent_name
 
         if shapes:
             layer["shapes"] = shapes
