@@ -56,11 +56,21 @@ class LottieToAnimTOON:
         if self.total_frames <= 0:
             self.total_frames = 1
 
+        # Build index→sanitized-name map so parent references resolve by name
+        layers = lottie_json.get('layers', [])
+        self._ind_to_name = {}
+        for layer in layers:
+            ind = layer.get('ind')
+            nm = layer.get('nm', f'layer{ind}')
+            nm_clean = re.sub(r'[^a-zA-Z0-9_]', '', nm) or f'layer{ind}'
+            if ind is not None:
+                self._ind_to_name[ind] = nm_clean
+
         lines = []
         lines.append(f"anim fr={int(self.fr)} dur={int(self.total_frames)}")
         lines.append("")
 
-        for layer in lottie_json.get('layers', []):
+        for layer in layers:
             try:
                 layer_lines = self._convert_layer(layer)
                 if layer_lines:
@@ -75,11 +85,17 @@ class LottieToAnimTOON:
     def _convert_layer(self, layer: dict) -> list:
         nm = layer.get('nm', 'unnamed')
         # Sanitize name: remove spaces, keep short
-        nm_clean = re.sub(r'[^a-zA-Z0-9_]', '', nm)
+        nm_clean = re.sub(r'[^a-zA-Z0-9_]', '', nm) or f'layer{layer.get("ind", 0)}'
         ty_num = layer.get('ty', 4)
         ty_str = LAYER_TYPE_MAP.get(ty_num, 'shape')
 
-        lines = [f"layer {nm_clean} {ty_str}"]
+        # Resolve parent index → parent name (preserves rigging hierarchy)
+        parent_ind = layer.get('parent')
+        parent_suffix = ""
+        if parent_ind is not None and parent_ind in self._ind_to_name:
+            parent_suffix = f" parent={self._ind_to_name[parent_ind]}"
+
+        lines = [f"layer {nm_clean} {ty_str}{parent_suffix}"]
 
         # Extract fill/stroke/path from shapes
         if 'shapes' in layer:

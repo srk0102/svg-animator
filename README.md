@@ -23,14 +23,14 @@ AnimTOON is a compact, plain-text animation format designed for LLMs to generate
 ### Crab Animation (47-part SVG)
 | AnimTOON (Ours) | OmniLottie (CVPR 2026) |
 |:---:|:---:|
-| ![AnimTOON Crab](gif/animtoon-crab.gif) | ![OmniLottie Crab](gif/omnilottie-crab.gif) |
+| ![AnimTOON Crab](docs/demos/animtoon-crab.gif) | ![OmniLottie Crab](docs/demos/omnilottie-crab.gif) |
 | **1024 tokens** / 82s / 30fps | **2001 tokens** / 55s+ / 8fps |
 | Real SVG + per-part animation | AI-generated (not a crab) |
 
 ### Apple Logo Animation
 | AnimTOON (Ours) | OmniLottie (CVPR 2026) |
 |:---:|:---:|
-| ![AnimTOON Apple](gif/antimtoon-apple.gif) | ![OmniLottie Apple](gif/omnilite-apple.gif) |
+| ![AnimTOON Apple](docs/demos/antimtoon-apple.gif) | ![OmniLottie Apple](docs/demos/omnilite-apple.gif) |
 | **166 tokens** / 26s / 30fps | **4095 tokens** / 55s+ / 8fps |
 | Real SVG shape + AI animation | AI-generated shape (incorrect) |
 

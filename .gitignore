@@ -1,25 +1,44 @@
 # Python
 __pycache__/
 *.pyc
+*.pyo
 venv*/
 *.egg-info/
+.pytest_cache/
 
-# Data (large files, generated)
+# Data (large files, gitignored — stored on HF)
 data/*.jsonl
 data/*.json
 data/*.lottie
 data/*.parquet
+data/raw/
+data/processed/
+data/archive/
+data/samples/*.jsonl
+data/private_scraped/
+data/private_*/
+data/dragonbones_raw/
+data/spine_examples/
+data/.kaggle_test*
 
-# Outputs (generated)
+# Scraper state (regenerated on run)
+scraper_state.json
+
+# Generated outputs
 outputs/
 
-# Models (large, upload to HuggingFace)
+# Model checkpoints (large, hosted on HuggingFace)
 models/
+
+# Debug / temp
+debug_screenshot.png
+*.log
 
 # IDE / OS
 .DS_Store
 .vscode/
 .idea/
+.ipynb_checkpoints/
 
 # Secrets
 .env
@@ -29,3 +48,4 @@ wandb/
 .claude/
 *.animtoon.txt
 unsloth_compiled_cache/
+OmniLottie/

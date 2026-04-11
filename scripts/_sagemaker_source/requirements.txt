@@ -1,0 +1,8 @@
+transformers==4.46.3
+peft==0.13.2
+trl==0.12.0
+accelerate==1.1.1
+bitsandbytes==0.44.1
+datasets
+huggingface_hub
+sentencepiece
